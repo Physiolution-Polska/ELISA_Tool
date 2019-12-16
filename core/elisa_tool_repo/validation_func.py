@@ -13,7 +13,7 @@ __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Grzegorz Banach"
 __email__ = "g.banach@physiolution.pl"
-__status__ = "Testing"
+__status__ = "Production"
 
 import elisa_tool_repo.et_calc as ecf
 import numpy as np
@@ -61,7 +61,7 @@ def validation_LN(noise_par, point_par):
     
     return val_export,par_model_val
 
-def validation_fcLN(noise_par, point_par):    
+def validation_cfLN(noise_par, point_par):    
     param_val=[('A_par1', 0.55), ('B_par1', 1.22), ('MSE', 0.0), ('R_squ', 0.0)]
     config={"A":[0.0,20.0],	"B":[0.0,20.0]}
 
@@ -100,7 +100,7 @@ def validation_4PL(noise_par, point_par):
       
     return val_export,par_model_val
 
-def validation_fc4PL(noise_par, point_par):    
+def validation_cf4PL(noise_par, point_par):    
     param_val=[('D_par1', 1.0), ('A_par1', 0.001), ('B_par1', 4.5), ('C_par1', 0.5), ('MSE', 0.0), ('R_squ', 0.0)]
     config={"A":[0.0,10.0],	"B":[0.0,10.0], "C":[0.0,30.0], "D":[0.0,20.0]}
 
@@ -138,7 +138,7 @@ def validation_5PL(noise_par, point_par):
 
     return val_export,par_model_val
 
-def validation_fc5PL(noise_par, point_par):    
+def validation_cf5PL(noise_par, point_par):    
     param_val=[('D_par1',1.0), ('A_par1',0.001), ('B_par1', 4.5), ('C_par1', 0.5), ('E_par1', 2.4), ('MSE', 0.0), ('R_squ', 0.0)]
     config={"A":[0.0,20.0],	"B":[0.0,50.0], "C":[0.0,50.0], "D":[0.0,50.0], "E":[0.0,20.0]}
      
@@ -151,7 +151,7 @@ def validation_fc5PL(noise_par, point_par):
     dat_model_val = [x_val40, y_val40]
     par_model_val = ecf.logit_5PL_curve_fit(D_st=dat_model_val, start_range=config)
     y_val40res = ecf.logit_5PL_func(X_data=x_val40, param=par_model_val)
-    print("Validation par fc5PL: ",par_model_val)
+    print("Validation par cf5PL: ",par_model_val)
     data ={'x_val': x_val40, 'y_val': y_val40, 'y_valres': y_val40res}
     val_export = pd.DataFrame(data)
     
@@ -161,16 +161,16 @@ def validation_eng(option, noise, points, val_report):
     
     x_thoer = np.arange(0.0, 1.0, (1.0/(20.0*points)))
     
-    if option=="fc4PL-val":
-       val_export_csv,par_model = validation_fc4PL(noise_par=noise, point_par=points)
+    if option=="cf4PL-val":
+       val_export_csv,par_model = validation_cf4PL(noise_par=noise, point_par=points)
        y_theor = ecf.logit_4PL_func(X_data=x_thoer, param=par_model)
        no_param = 4
-    if option=="fc5PL-val":
-       val_export_csv,par_model = validation_fc5PL(noise_par=noise, point_par=points)
+    if option=="cf5PL-val":
+       val_export_csv,par_model = validation_cf5PL(noise_par=noise, point_par=points)
        y_theor = ecf.logit_5PL_func(X_data=x_thoer, param=par_model)
        no_param = 5
-    if option=="fcLN-val":
-       val_export_csv,par_model = validation_fcLN(noise_par=noise, point_par=points)
+    if option=="cfLN-val":
+       val_export_csv,par_model = validation_cfLN(noise_par=noise, point_par=points)
        y_theor = ecf.LN_func(X_data=x_thoer, param=par_model)
        no_param = 2
     if option=="4PL-val":
@@ -212,17 +212,17 @@ def validation_eng(option, noise, points, val_report):
     log_file.write('Noise = %f, Number points = %d \n' %(noise, points))
     log_file.write('\n')
     log_file.write('Model parameters: \n  ')
-    if ((option=="fc5PL-val") or (option=="5PL-val")):
+    if ((option=="cf5PL-val") or (option=="5PL-val")):
         log_file.write('Absorbance=D+((A-D)/(1+(Conc/C)^B)^E) \n')
         log_file.write('A=%f, B=%f, C=%f, D=%f, E=%f \n' %(par_model[1][1], par_model[2][1], par_model[3][1], par_model[0][1], par_model[4][1]))
         RSS = par_model[5][1]
         RSQ = par_model[6][1]
-    if ((option=="fc4PL-val") or (option=="4PL-val")):
+    if ((option=="cf4PL-val") or (option=="4PL-val")):
         log_file.write('Absorbance=D+((A-D)/(1+(Conc/C)^B) \n')
         log_file.write('A=%f, B=%f, C=%f, D=%f \n' %(par_model[1][1], par_model[2][1], par_model[3][1], par_model[0][1]))
         RSS = par_model[4][1]
         RSQ = par_model[5][1]
-    if ((option=="fcLN-val") or (option=="LN-val")):
+    if ((option=="cfLN-val") or (option=="LN-val")):
         log_file.write('Absorbance=A*ln(Conc)+B \n ')
         log_file.write('A=%f, B=%f \n' %(par_model[0][1], par_model[1][1]))
         RSS = par_model[2][1]

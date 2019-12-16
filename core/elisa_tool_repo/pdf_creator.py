@@ -14,7 +14,7 @@ __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Grzegorz Banach"
 __email__ = "g.banach@physiolution.pl"
-__status__ = "Testing"
+__status__ = "Production"
 
 from weasyprint import HTML
 import datetime
@@ -103,7 +103,7 @@ def rep_csv_order(D_sam, rep_name, i_data, i_data_map, d_st, p_folder, parameter
         '\r\n'+ 'Calibration standards'+'\r\n'+ s_csv_d_st + '\r\n'+ 'Calculation results'+'\r\n'+s_csv_res + '\r\n'+ 'BLQ samples'+ \
         '\r\n'+s_csv_rej
     
-    if ((order=="LN") or (order=="fcLN")):
+    if ((order=="LN") or (order=="cfLN")):
         s=doc_structure + '\r\n'+'Coefficient of Determination R^2,'+ str(round(parameters[3][1],8))+ '\r\n'\
                         +'Akaike Information Criterion AIC,'+ str(round(parameters[4][1],8))+ '\r\n'\
                         +'Bayesian Information Criterion BIC,'+ str(round(parameters[5][1],8))+ '\r\n'\
@@ -114,7 +114,7 @@ def rep_csv_order(D_sam, rep_name, i_data, i_data_map, d_st, p_folder, parameter
                         +'B,'+ str(round(parameters[1][1],8)) + '\r\n'\
                         +'Time of calculation,' + str(round(cal_time,6))
 
-    if ((order=="4PL") or (order=="fc4PL")):
+    if ((order=="4PL") or (order=="cf4PL")):
         s=doc_structure + '\r\n'+'Coefficient of Determination R^2,'+ str(round(parameters[5][1],8))+ '\r\n'\
                         +'Akaike Information Criterion AIC,'+ str(round(parameters[6][1],8))+ '\r\n'\
                         +'Bayesian Information Criterion BIC,'+ str(round(parameters[7][1],8))+ '\r\n'\
@@ -124,7 +124,7 @@ def rep_csv_order(D_sam, rep_name, i_data, i_data_map, d_st, p_folder, parameter
                         + 'D,' + str(round(parameters[0][1],8))+'\r\n' + 'A,'+str(round(parameters[1][1],8)) + '\r\n' + 'B,' + str(round(parameters[2][1],8))+'\r\n'+'C,'+str(round(parameters[3][1],8)) + '\r\n'\
                         +'Time of calculation,' + str(round(cal_time,6))
 
-    if ((order=="5PL") or (order=="fc5PL")):
+    if ((order=="5PL") or (order=="cf5PL")):
         s=doc_structure + '\r\n'+'Coefficient of Determination R^2,'+ str(round(parameters[6][1],8)) + '\r\n'\
                         +'Akaike Information Criterion AIC,'+ str(round(parameters[7][1],8))+ '\r\n'\
                         +'Bayesian Information Criterion BIC,'+ str(round(parameters[8][1],8))+ '\r\n'\
@@ -136,6 +136,47 @@ def rep_csv_order(D_sam, rep_name, i_data, i_data_map, d_st, p_folder, parameter
                         +'Time of calculation,' + str(round(cal_time,6))
     
     file= open(p_folder + '/' + rep_name + '_' + order + '_' + ts_name + "_data.csv","w")
+    file.write(s)
+    file.close() 
+
+def rep_error_csv(rep_name, p_folder,parameters, order, error_info):
+    """
+    The function was implemented to create and save csv report for 5PL model.
+    """
+    doc_structure = error_info + '\r\n Results: '
+    
+    if ((order == "LN") or (order == "cfLN")):
+        s=doc_structure + '\r\n'+'Coefficient of Determination R^2,'+ str(round(parameters[3][1],8)) + '\r\n'\
+                        +'Akaike Information Criterion AIC,'+ str(round(parameters[4][1],8)) + '\r\n'\
+                        +'Bayesian Information Criterion BIC,'+ str(round(parameters[5][1],8)) + '\r\n'\
+                        +'Coefficient of Correlation r,'+ str(round(parameters[6][1],8)) + '\r\n'\
+                        +'The Residual Sum of Squares RSS,' + str(round(parameters[2][1],8)) +'\r\n'\
+                        +'\r\n' + 'Absorbance=A*ln(Conc)+B' + '\r\n'\
+                        +'A,' + str(round(parameters[0][1],8)) +'\r\n'\
+                        +'B,'+ str(round(parameters[1][1],8))
+
+    if ((order == "4PL") or (order == "cf4PL")):
+        s=doc_structure + '\r\n'+'Coefficient of Determination R^2,'+ str(round(parameters[5][1],8)) + '\r\n'\
+                        +'Akaike Information Criterion AIC,'+ str(round(parameters[6][1],8)) + '\r\n'\
+                        +'Bayesian Information Criterion BIC,'+ str(round(parameters[7][1],8)) + '\r\n'\
+                        +'Coefficient of Correlation r,'+ str(round(parameters[8][1],8)) + '\r\n'\
+                        +'The Residual Sum of Squares RSS,' + str(round(parameters[4][1],8)) +'\r\n'\
+                        + 'Absorbance=D+((A-D)/(1+(Conc/C)^B)' + '\r\n'\
+                        + 'D,' + str(round(parameters[0][1],8)) + '\r\n' + 'A,'+str(round(parameters[1][1],8)) + '\r\n' + 'B,' + str(round(parameters[2][1],8))+'\r\n'+'C,'+str(round(parameters[3][1],8))
+
+    if ((orde r== "5PL") or (order == "cf5PL")):
+        s=doc_structure + '\r\n' + 'Coefficient of Determination R^2,' + str(round(parameters[6][1],8)) + '\r\n'\
+                        +'Akaike Information Criterion AIC,' + str(round(parameters[7][1],8)) + '\r\n'\
+                        +'Bayesian Information Criterion BIC,' + str(round(parameters[8][1],8)) + '\r\n'\
+                        +'Coefficient of Correlation r,' + str(round(parameters[9][1],8)) + '\r\n'\
+                        +'The Residual Sum of Squares RSS,' + str(round(parameters[5][1],8)) +'\r\n'\
+                        +'\r\n' + 'Absorbance=D+((A-D)/(1+(Conc/C)^B)^E)' + '\r\n'\
+                        +'D,' + str(round(parameters[0][1],8)) + '\r\n' + 'A,'+ str(round(parameters[1][1],8)) + '\r\n'\
+                        +'B,' + str(round(parameters[2][1],8)) + '\r\n' + 'C,'+ str(round(parameters[3][1],8)) + '\r\n' + 'E,' + str(round(parameters[4][1],8)) 
+
+    ts=datetime.datetime.now()
+    ts_name=ts.strftime("%d_%b_%Y_%H_%M")
+    file= open(p_folder + '/' + rep_name + '_' + order + '_' + ts_name + "_error.csv","w")
     file.write(s)
     file.close() 
 
@@ -167,17 +208,17 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
         s71=textwrap.wrap(text=notice, width=99)
         notice= ' \A '.join(s71)
         
-    if ((order=="LN") or (order=="fcLN")):
+    if ((order=="LN") or (order=="cfLN")):
         core_name="_" + order + "_out_report_"
         report_name="Logarithmic"
         formula="Absorbance=A*ln(Conc)+B"
 
-    if ((order=="4PL") or (order=="fc4PL")):
+    if ((order=="4PL") or (order=="cf4PL")):
         core_name="_logit_" + order + "_out_report_"
         report_name="Logit " + order
         formula="Absorbance=D+((A-D)/(1+(Conc/C)^B)"
 
-    if ((order=="5PL") or (order=="fc5PL")):
+    if ((order=="5PL") or (order=="cf5PL")):
         core_name="_logit_" + order + "_out_report_"
         report_name="Logit " + order
         formula="Absorbance=D+((A-D)/(1+(Conc/C)^B)^E)"
@@ -218,7 +259,7 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
         """).format(spec_html=spec_html_table, exdate=expdate, proj_name=projname,  uname=username, tno= test_no, timestamp1=ts1, 
                      timestamp=ts1, data_in=i_data, data_map=i_data_map, cal_st=d_st)
     
-    if ((order=="LN") or (order=="fcLN")):     
+    if ((order=="LN") or (order=="cfLN")):     
         sb=("""
             <div class="elem">
                 <h2>Model: {R_name} fitting</h2>
@@ -243,7 +284,7 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
             """).format(R_name=report_name, form=formula, rss=parameters[2][1], rsq=parameters[3][1], AIC=parameters[4][1], BIC=parameters[5][1], rcc=parameters[6][1], \
                                       A=parameters[0][1], B=parameters[1][1], cal_time=cal_time)
 
-    if ((order=="4PL") or (order=="fc4PL")): 
+    if ((order=="4PL") or (order=="cf4PL")): 
         sb=("""
             <div class="elem">
                 <h2>Model: {R_name} fitting</h2>
@@ -269,7 +310,7 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
             """).format(R_name=report_name, form=formula, rss=parameters[4][1], rsq=parameters[5][1], AIC=parameters[6][1], BIC=parameters[7][1], rcc=parameters[8][1], \
                                       D=parameters[0][1], A=parameters[1][1], B=parameters[2][1], C=parameters[3][1], cal_time=cal_time)
 
-    if ((order=="5PL") or (order=="fc5PL")): 
+    if ((order=="5PL") or (order=="cf5PL")): 
         sb=("""
           <div class="elem">
                 <h2>Model: {R_name} fitting</h2>
@@ -343,7 +384,7 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
                                margin-right: 5px;
                               
                                content: "";
-                               background: url("template/Logo.png") no-repeat 0 0;
+                               background: url("template/Logo.jpg") no-repeat 0 0;
                                background-size: 70%;
                    
                                 text-align: left;}
@@ -351,7 +392,7 @@ def pdf_report_generation(rep_name, i_data, i_data_map, d_st, p_folder, plot_nam
                    
                    @top-center {
                                content:" """ )
-#     content: url("../template/Logo.png");
+#     content: url("../template/Logo31.jpg");
     s2=("{sop_name} \A {res_name}").format(sop_name=sopname, res_name=resname)
     s3=("""";
     font-size: 11px;

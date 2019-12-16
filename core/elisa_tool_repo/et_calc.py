@@ -13,7 +13,7 @@ __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Grzegorz Banach"
 __email__ = "g.banach@physiolution.pl"
-__status__ = "Testing"
+__status__ = "Production"
 
 import numpy as np
 import pandas as pd
@@ -29,10 +29,10 @@ def max_concentration(res_sam_mat, std_mat):
     The function implemented to return the maximal known concentration from the whole data set for appropriate plotting.
     """
     res_sam=res_sam_mat[1]
-    print("res_sam:", res_sam)
+    #print("res_sam:", res_sam)
 
     std=std_mat[std_mat.columns[0]]
-    print("std:", std)
+    #print("std:", std)
     
     max_res_sam=max(res_sam)
     max_std= max(std)
@@ -43,7 +43,7 @@ def max_concentration(res_sam_mat, std_mat):
     else:
         max_conc=max_std
     """returns the value of maximal titer concentration"""    
-    return(max_conc)
+    return max_conc
 
 def min_concentration(res_sam_mat, std_mat):
     """
@@ -78,7 +78,7 @@ def theor_X(res_sam_mat, std_mat):
     delta = (maxconc - minconc)/1000
     X_t = np.arange(minconc, maxconc, delta)
     #returns list of titer concentration valuesfor further calculations of theoretical curve
-    return(X_t)
+    return X_t
     
 def data_st_to_print (imp_data, imp_data_map, data_standards):
     """
@@ -125,8 +125,8 @@ def ln_func_par_opt(D_st, start_range):
     The function implemented to calculate an optimal ln function parameters. The logarithmic function is given below. Returns list of tuples with theparameters.
     Uses tuple of two 1-D lists of calibration standards data of the same size as an input data.
     """
-    X_st1=np.array(D_st[0])
-    Y_st1=np.array(D_st[1])
+    X_st1 = np.array(D_st[0])
+    Y_st1 = np.array(D_st[1])
     
     def ln_func_opt(X_param):
         Y_th1=X_param[0]*np.log(X_st1)+X_param[1]
@@ -139,15 +139,21 @@ def ln_func_par_opt(D_st, start_range):
     B_p = start_range['B'][1]
     bounds=[(A_l, A_p),(B_l, B_p)]
 
-    result = differential_evolution(ln_func_opt, bounds, maxiter=750000, popsize= 45, strategy='best2bin')
-    
+    result = differential_evolution(ln_func_opt, bounds, maxiter=750000, popsize= 45, strategy='best2bin')    
+   
     par=[result.x[0], result.x[1]]
     RSS=ln_func_opt(X_param=par)/len(X_st1)
-    
-    parameters=[('A_par',result.x[0]), ('B_par',result.x[1]), ('RSS', RSS)]
-    # ('R_squ', R_squ), ('R_corre', r), ('AIC_crit', akaike_crit), ('BIC_crit', bayes_crit)]
+    if(result.x[0] == A_l or result.x[0] == A_p or result.x[1] == B_l or result.x[1] == B_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
+      
+    parameters=[('A_par1',result.x[0]), ('B_par1',result.x[1]), ('RSS', RSS)]
+
     R_squ=R_squared_LN(D_st, parameters)
-    
+    if(R_squ < 0.6):  error_bound = 1
     y_theor = LN_func(X_data=X_st1, param=parameters)
     akaike_crit = aic.aic(y=Y_st1, y_pred=y_theor, p=2)
     bayes_crit = bic.bic(y=Y_st1, y_pred=y_theor, p=2)
@@ -157,6 +163,7 @@ def ln_func_par_opt(D_st, start_range):
     parameters.append(('AIC_crit', akaike_crit))
     parameters.append(('BIC_crit', bayes_crit))
     parameters.append(('R_corre', r))    
+    parameters.append(('Error', error_bound))
 
     return(parameters)
 
@@ -169,7 +176,7 @@ def ln_func_concentration(Y_data, param):
     A_par = param[0][1]
     B_par = param[1][1]
 
-    X = np.exp((Y_data-B_par)/A_par)
+    X = np.exp((Y_data - B_par)/A_par)
 
     return(X)
 
@@ -191,12 +198,12 @@ def remove_abs_smaller_0(X_data, Y_data):
     """
     Cleans the ln data from the values <0.
     """
-    dat=pd.DataFrame()
-    dat['X']=X_data
-    dat['Y']=Y_data
-    dat=dat[dat.Y>0]
+    dat = pd.DataFrame()
+    dat['X'] = X_data
+    dat['Y'] = Y_data
+    dat = dat[dat.Y > 0]
     """returns DataFrame"""
-    return (dat)
+    return dat
     
 def R_squared_LN(D_st, par):
     """Returns the R^2 model parameter from the calibration standards values and ln model parameters
@@ -207,7 +214,7 @@ def R_squared_LN(D_st, par):
     Ytheoretical=LN_func(X_data= X_dat, param=par)
     resp=r2_score(y_true= D_st[1], y_pred= Ytheoretical)
     """returns R^2 value for the fitted model and previously chosen data set"""
-    return(resp)
+    return resp
     
 #logit 5PL function stuff
 def logit_5PL_par_opt(D_st, start_range):
@@ -215,13 +222,13 @@ def logit_5PL_par_opt(D_st, start_range):
     The function implemented to calculate an optimal 5PL function parameters. The 5PL function is given below. Returns list of tuples with the parameters.
     Uses tuple or a list of two 1-D lists of calibration standards data of the same size as an input data.
     """
-    X_st=np.array(D_st[0])
-    Y_st=np.array(D_st[1])
+    X_st = np.array(D_st[0])
+    Y_st = np.array(D_st[1])
     
     def logit_func_opt(X_param):
-        Y_th=X_param[0]+((X_param[1]-X_param[0])/(1+(X_st/X_param[3])**X_param[2])**X_param[4])
-        MNK=sum((Y_th-Y_st)**2)
-        return(MNK)
+        Y_th = X_param[0] + ((X_param[1] - X_param[0])/(1 + (X_st/X_param[3])**X_param[2])**X_param[4])
+        MNK = sum((Y_th-Y_st)**2)
+        return MNK 
    
     D_l = start_range['D'][0]
     D_p = start_range['D'][1]
@@ -237,22 +244,33 @@ def logit_5PL_par_opt(D_st, start_range):
 
        
     result = differential_evolution(logit_func_opt, bounds, maxiter=750000, popsize= 45, strategy='best2bin')
-    
-    par=[result.x[0], result.x[1], result.x[2], result.x[3], result.x[4]]
-    
+
+    par=[result.x[0], result.x[1], result.x[2], result.x[3], result.x[4]]  
     RSS=logit_func_opt(X_param=par)/len(X_st)
-    parameters=[('D_par1',result.x[0]), ('A_par1',result.x[1]), ('B_par1', result.x[2]), ('C_par1', result.x[3]), ('E_par1', result.x[4]),('RSS', RSS)]
-    R_squ=R_squared_5PL(D_st, parameters)
-    parameters.append(('R_squ', R_squ))
+    if(result.x[1] == A_l or result.x[1] == A_p or result.x[2] == B_l or result.x[2] == B_p or
+       result.x[3] == C_l or result.x[3] == C_p or result.x[0] == D_l or result.x[0] == D_p or
+       result.x[4] == E_l or result.x[4] == E_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
     
+    parameters=[('D_par1',result.x[0]), ('A_par1',result.x[1]), ('B_par1', result.x[2]), ('C_par1', result.x[3]), 
+                ('E_par1', result.x[4]), ('RSS', RSS)]
+
+    R_squ=R_squared_5PL(D_st, parameters)
+    if(R_squ < 0.6):  error_bound = 1   
     y_theor = logit_5PL_func(X_data=X_st, param=parameters)
     akaike_crit = aic.aic(y=Y_st, y_pred=y_theor, p=5)
     bayes_crit = bic.bic(y=Y_st, y_pred=y_theor, p=5)
+    r, prob = pearsonr(Y_st, y_theor)
+
+    parameters.append(('R_squ', R_squ))
     parameters.append(('AIC_crit', akaike_crit))
     parameters.append(('BIC_crit', bayes_crit))
-    r, prob = pearsonr(Y_st, y_theor)
     parameters.append(('R_corre', r))
-    
+    parameters.append(('Error', error_bound))   
     """returns the list of tuples with 5PL model parameters"""
     return (parameters)
 
@@ -264,13 +282,13 @@ def logit_5PL_concentration(Y_data, param):
     Y_data - values of absorbance
     param - list of tuples with optimal 5PL-model parameters
     """
-    D_par=param[0][1]
-    A_par=param[1][1]
-    B_par=param[2][1]
-    C_par=param[3][1]
-    E_par=param[4][1]
+    D_par = param[0][1]
+    A_par = param[1][1]
+    B_par = param[2][1]
+    C_par = param[3][1]
+    E_par = param[4][1]
 
-    X=C_par*(((((A_par-D_par)/(Y_data-D_par))**(1/E_par))-1)**(1/B_par))
+    X = C_par*(((((A_par - D_par)/(Y_data - D_par))**(1/E_par))-1)**(1/B_par))
         
     """returns list of titer concentration values"""
     return(X)
@@ -284,11 +302,11 @@ def logit_5PL_func(X_data, param):
     param - list of tuples of the optimal parameters obtained for the 5PL model
     """
     
-    D_par=param[0][1]
-    A_par=param[1][1]
-    B_par=param[2][1]
-    C_par=param[3][1]
-    E_par=param[4][1]
+    D_par = param[0][1]
+    A_par = param[1][1]
+    B_par = param[2][1]
+    C_par = param[3][1]
+    E_par = param[4][1]
 
     Y_func = D_par + ((A_par - D_par)/(1 + (X_data/C_par)**B_par)**E_par)
     """returns calculated absorbance values"""
@@ -315,13 +333,13 @@ def logit_4PL_par_opt(D_st, start_range):
     Function input:
     Uses tuple or a list of two 1-D lists of calibration standards data of the same size as an input data.
     """
-    X_st=D_st[0]
-    Y_st=D_st[1]
+    X_st = D_st[0]
+    Y_st = D_st[1]
     
     def logit_func_opt(X_param):
-        Y_th=X_param[0]+(X_param[1]-X_param[0])/(1+(X_st/X_param[3])**X_param[2])
-        MNK=sum((Y_th-Y_st)**2)
-        return(MNK)
+        Y_th = X_param[0] + (X_param[1] - X_param[0])/(1 + (X_st/X_param[3])**X_param[2])
+        MNK = sum((Y_th-Y_st)**2)
+        return MNK
 
     D_l = start_range['D'][0]
     D_p = start_range['D'][1]
@@ -334,21 +352,32 @@ def logit_4PL_par_opt(D_st, start_range):
 
     bounds=[(D_l, D_p),(A_l, A_p),(B_l, B_p),(C_l, C_p)]
     result = differential_evolution(logit_func_opt, bounds, maxiter=750000, popsize= 45, strategy='best2bin')
-    
+
     par=[result.x[0], result.x[1], result.x[2], result.x[3]]
-    RSS=logit_func_opt(X_param=par)/len(X_st)
+    RSS=logit_func_opt(X_param=par)/len(X_st)  
+    if(result.x[1] == A_l or result.x[1] == A_p or result.x[2] == B_l or result.x[2] == B_p or
+       result.x[3] == C_l or result.x[3] == C_p or result.x[0] == D_l or result.x[0] == D_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
     
-    parameters=[('D_par1',result.x[0]), ('A_par1',result.x[1]), ('B_par1', result.x[2]), ('C_par1', result.x[3]), ('RSS', RSS)]
+    parameters=[('D_par1',result.x[0]), ('A_par1',result.x[1]), ('B_par1', result.x[2]), 
+                ('C_par1', result.x[3]), ('RSS', RSS)]
+
     R_squ=R_squared_4PL(D_st, parameters)
-    parameters.append(('R_squ', R_squ))
-    
+    if(R_squ < 0.6):  error_bound = 1
     y_theor = logit_4PL_func(X_data=X_st, param=parameters)
     akaike_crit = aic.aic(y=Y_st, y_pred=y_theor, p=4)
-    parameters.append(('AIC_crit', akaike_crit))
     bayes_crit = bic.bic(y=Y_st, y_pred=y_theor, p=4)
-    parameters.append(('BIC_crit', bayes_crit))
     r, prob = pearsonr(Y_st, y_theor)
+
+    parameters.append(('R_squ', R_squ))
+    parameters.append(('AIC_crit', akaike_crit))
+    parameters.append(('BIC_crit', bayes_crit))
     parameters.append(('R_corre', r))
+    parameters.append(('Error', error_bound))
     """returns list of tuples with optimal 4PL-model parameters and R_squ"""
     return (parameters)
 
@@ -361,12 +390,12 @@ def logit_4PL_concentration(Y_data, param):
     param - list of tuples with optimal 4PL-model parameters
     """
     
-    D_par=param[0][1]
-    A_par=param[1][1]
-    B_par=param[2][1]
-    C_par=param[3][1]
+    D_par = param[0][1]
+    A_par = param[1][1]
+    B_par = param[2][1]
+    C_par = param[3][1]
 
-    X=C_par*((((A_par-D_par)/(Y_data-D_par))-1)**(1/B_par))        
+    X = C_par*((((A_par - D_par)/(Y_data - D_par)) - 1)**(1/B_par))        
         
     """returns list of titer concentration values"""
     return(X)
@@ -379,12 +408,12 @@ def logit_4PL_func(X_data, param):
     X_data - list of titer concentrations
     param - list of tuples of the optimal parameters obtained for the 4PL model
     """
-    D_par=param[0][1]
-    A_par=param[1][1]
-    B_par=param[2][1]
-    C_par=param[3][1]
+    D_par = param[0][1]
+    A_par = param[1][1]
+    B_par = param[2][1]
+    C_par = param[3][1]
 
-    Y_func=D_par + (A_par - D_par)/(1 + (X_data/C_par)**B_par)
+    Y_func = D_par + (A_par - D_par)/(1 + (X_data/C_par)**B_par)
     """returns calculated absorbance values"""
     return(Y_func)
 
@@ -395,9 +424,9 @@ def R_squared_4PL(D_st, par):
     Function input:
     D_st - a tuple of calibration standard values list (D_st[0]- titer concentration, D_st[1] - absorbance)
     """
-    X_dat=D_st[0]
-    Ytheoretical=logit_4PL_func(X_data= X_dat, param=par)
-    resp=r2_score(y_true= D_st[1], y_pred= Ytheoretical)
+    X_dat = D_st[0]
+    Ytheoretical = logit_4PL_func(X_data= X_dat, param=par)
+    resp = r2_score(y_true= D_st[1], y_pred= Ytheoretical)
     """returns R^2 value for the fitted model and previously chosen data set"""
     return(resp)
 
@@ -417,8 +446,8 @@ def data_std_format(imp_data, imp_data_map, data_standards):
         for r_name in imp_index:
             vars()[imp_data_map.loc[r_name][c_name]].append(imp_data.loc[r_name][c_name])
             
-    X_st=[]
-    Y_st=[]
+    X_st = []
+    Y_st = []
     
     for g in g2:
         vars()[g]=sum(vars()[g]) / float(len(vars()[g]))
@@ -473,13 +502,27 @@ def samples_concenration(imp_data, imp_data_map, params, ordered, d_st):
                 """If NO then append to DataFrame new record"""
                 tmp_df = pd.DataFrame([[[is_concen], 1]], columns=[ 'Y_abs', 'samples_nb'], index=[is_string])
                 df_local = df_local.append(tmp_df, ignore_index=False)
-    print("Params in Concentrations: ",params)
+
+    """
+    First time for std, to prepare value for LN limit condition
+    """
     for index, row in df_local.iterrows():
         row["Y_ave_abs"] = sum(row["Y_abs"])/row["samples_nb"]
         row["Y_abs_std"] = np.std(row["Y_abs"])
+        if ('std' in index):  # put standard concentration (comming from parsing part) to the main DF
+            row["X_concentration"] = d_st.conc[index]
+            row["Errors"] = 100
+    
+    Max_ind_of_std = df_local['Y_ave_abs'].astype('float64').idxmax(skipna=True)  
+    Max_val_of_std = df_local.loc[Max_ind_of_std]['Y_ave_abs']
+    Max_val_of_dev = df_local.loc[Max_ind_of_std]['Y_abs_std']
+    """
+    Second time for sam only
+    """       
+    for index, row in df_local.iterrows():
         if ('sam' in index):           
-            if ((ordered=="LN") or (ordered=="fcLN")):
-                if(row["Y_ave_abs"] >= params[1][1]): #temporary solution
+            if ((ordered=="LN") or (ordered=="cfLN")):
+                if(((row["Y_ave_abs"] + row["Y_abs_std"]) >= 0.0) and (row["Y_ave_abs"] - row["Y_abs_std"]) <= (Max_val_of_dev + Max_val_of_std)):
                     ave_concentr = ln_func_concentration(Y_data=row["Y_ave_abs"], param=params)
                     row["X_concentration"] = ave_concentr
                     row["X_s_conc_std_upper"] = ln_func_concentration(Y_data=(row["Y_ave_abs"] + row["Y_abs_std"]), param=params) - ave_concentr
@@ -488,7 +531,7 @@ def samples_concenration(imp_data, imp_data_map, params, ordered, d_st):
                 else:
                     row["X_concentration"] = 0.0
                     row["Errors"] = 1
-            if ((ordered=="4PL") or (ordered=="fc4PL")): 
+            if ((ordered=="4PL") or (ordered=="cf4PL")): 
                 if((row["Y_ave_abs"]  + row["Y_abs_std"] >= params[1][1]) and (row["Y_ave_abs"] - row["Y_abs_std"] <= params[0][1])):
                     """ 1) bottom limit for 4PL (Y_abs+Y_std >= A_par)
                         2) upper limit for 4PL (Y_abs-Y_std <= D_par)
@@ -501,7 +544,7 @@ def samples_concenration(imp_data, imp_data_map, params, ordered, d_st):
                 else:
                     row["X_concentration"] = 0.0
                     row["Errors"] = 1
-            if ((ordered=="5PL") or (ordered=="fc5PL")):            
+            if ((ordered=="5PL") or (ordered=="cf5PL")):            
                 if((row["Y_ave_abs"] + row["Y_abs_std"] >= params[1][1]) and (row["Y_ave_abs"] - row["Y_abs_std"] <= params[0][1])): 
                     """ 1) bottom limit for 5PL (Y_abs+Y_std >= A_par)
                         2) upper limit for 5PL (Y_abs-Y_std <= D_par)
@@ -514,9 +557,6 @@ def samples_concenration(imp_data, imp_data_map, params, ordered, d_st):
                 else:
                     row["X_concentration"] = 0.0
                     row["Errors"] = 1
-        if ('std' in index):  # put standard concentration (comming from parsing part) to the main DF
-            row["X_concentration"] = d_st.conc[index]
-            row["Errors"] = 100
                
         """                    
         if ('zero' in index): 
@@ -569,7 +609,7 @@ def samples_concenration(imp_data, imp_data_map, params, ordered, d_st):
           
     #          0              1               2        3          4                   5                  6             7          8          9
     return (Y_s_names, X_s_concentration, Y_s_good, Y_s_bad, X_s_conc_std_bottom, X_s_conc_std_upper, Y_s_abs_std, X_std_abs, Y_std_abs, Y_std_std)
-#    return df_local
+
         
 def samples_concenration_new(imp_data, imp_data_map, params, ordered, d_st, df_local):
     
@@ -580,7 +620,7 @@ def samples_concenration_new(imp_data, imp_data_map, params, ordered, d_st, df_l
     """Refactoring parsing_sam_and_concenration """
     for index, row in df_local.iterrows():
         if ('sam' in index):           
-            if ((ordered=="LN") or (ordered=="fcLN")):
+            if ((ordered=="LN") or (ordered=="cfLN")):
                 if(row["Y_ave_abs"] >= params[1][1]): #temporary solution
                     ave_concentr = ln_func_concentration(Y_data=row["Y_ave_abs"], param=params)
                     row["X_concentration"] = ave_concentr
@@ -590,7 +630,7 @@ def samples_concenration_new(imp_data, imp_data_map, params, ordered, d_st, df_l
                 else:
                     row["X_concentration"] = 0.0
                     row["Errors"] = 1
-            if ((ordered=="4PL") or (ordered=="fc4PL")): 
+            if ((ordered=="4PL") or (ordered=="cf4PL")): 
                 if((row["Y_ave_abs"]  + row["Y_abs_std"] >= params[1][1]) and (row["Y_ave_abs"] - row["Y_abs_std"] <= params[0][1])):
                     """ 1) bottom limit for 4PL (Y_abs+Y_std >= A_par)
                         2) upper limit for 4PL (Y_abs-Y_std <= D_par)
@@ -603,7 +643,7 @@ def samples_concenration_new(imp_data, imp_data_map, params, ordered, d_st, df_l
                 else:
                     row["X_concentration"] = 0.0
                     row["Errors"] = 1
-            if ((ordered=="5PL") or (ordered=="fc5PL")):            
+            if ((ordered=="5PL") or (ordered=="cf5PL")):            
                 if((row["Y_ave_abs"] + row["Y_abs_std"] >= params[1][1]) and (row["Y_ave_abs"] - row["Y_abs_std"] <= params[0][1])): 
                     """ 1) bottom limit for 5PL (Y_abs+Y_std >= A_par)
                         2) upper limit for 5PL (Y_abs-Y_std <= D_par)
@@ -759,46 +799,51 @@ def recognition_experiment(imp_data, imp_data_map, d_st):
     #return (Y_s_names, X_s_concentration, Y_s_good, Y_s_bad, X_s_conc_std_bottom, X_s_conc_std_upper, Y_s_abs_std, X_std_abs, Y_std_abs, Y_std_std)
     return df_local, flag
 
-
-
        
 def LN_func_curve_fit(D_st, start_range):
     """
     Optimization on the base of curvr_fit function
     """
-    X_st=D_st[0]
-    Y_st=D_st[1]
+    X_st = D_st[0]
+    Y_st = D_st[1]
     
     def logit_func_LN(X_st, A, B):
-        Y_th=A*np.log(X_st) + B
-        return(Y_th)
+        Y_th = A*np.log(X_st) + B
+        return Y_th
   
     A_l = start_range['A'][0]
     A_p = start_range['A'][1]
     B_l = start_range['B'][0]
     B_p = start_range['B'][1]
     
-    par, pcov = curve_fit(
-            logit_func_LN, X_st, Y_st, bounds=([A_l, B_l],[A_p, B_p]))
+    par, pcov = curve_fit(logit_func_LN, X_st, Y_st, bounds=([A_l, B_l],[A_p, B_p]))
 
     def avarage_LN(X_st, par):
         Y_new=logit_func_LN(X_st=X_st, A=par[0], B=par[1])
         return  sum((Y_new-Y_st)**2)
     
     RSS=avarage_LN(X_st, par)/len(X_st)
+    if(par[0] == A_l or par[0] == A_p or par[1] == B_l or par[1] == B_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
     
     parameters=[('A_par1',par[0]), ('B_par1', par[1]), ('RSS', RSS)]
-    R_squ=R_squared_LN(D_st, parameters)
-    parameters.append(('R_squ', R_squ))
     
+    R_squ=R_squared_LN(D_st, parameters)
+    if(R_squ < 0.6):  error_bound = 1
     y_theor = LN_func(X_data=X_st, param=parameters)
     akaike_crit = aic.aic(y=Y_st, y_pred=y_theor, p=2)
     bayes_crit = bic.bic(y=Y_st, y_pred=y_theor, p=2)
     r, prob = pearsonr(Y_st, y_theor)
 
+    parameters.append(('R_squ', R_squ))
     parameters.append(('AIC_crit', akaike_crit))
     parameters.append(('BIC_crit', bayes_crit))
     parameters.append(('R_corre', r))  
+    parameters.append(('Error', error_bound))
     """returns list of tuples with optimal 4PL-model parameters and R_squ"""
     return (parameters)
 
@@ -807,12 +852,12 @@ def logit_4PL_curve_fit(D_st, start_range):
     """
     Optimization on the base of curvr_fit function
     """
-    X_st=D_st[0]
-    Y_st=D_st[1]
+    X_st = D_st[0]
+    Y_st = D_st[1]
     
     def logit_func_4PL(X_st, A, B, C, D):
-        Y_th=D+(A-D)/(1+(X_st/C)**B)        
-        return(Y_th)
+        Y_th = D + (A - D)/(1 + (X_st/C)**B)        
+        return Y_th
   
     D_l = start_range['D'][0]
     D_p = start_range['D'][1]
@@ -823,26 +868,36 @@ def logit_4PL_curve_fit(D_st, start_range):
     C_l = start_range['C'][0]
     C_p = start_range['C'][1]
     
-    par, pcov = curve_fit(logit_func_4PL, X_st, Y_st, bounds=([D_l, A_l, B_l, C_l],[D_p, A_p, B_p, C_p]))
+    par, pcov = curve_fit(logit_func_4PL, X_st, Y_st, bounds=([D_l, A_l, B_l, C_l], [D_p, A_p, B_p, C_p]))
 
     def avarage_4PL(X_st, par):
-        Y_new=logit_func_4PL(X_st=X_st, A=par[0], B=par[1], C=par[2], D=par[3])
+        Y_new=logit_func_4PL(X_st=X_st, A=par[1], B=par[2], C=par[3], D=par[0])
         return  sum((Y_new-Y_st)**2)
     
     RSS=avarage_4PL(X_st, par)/len(X_st)
+    if(par[1] == A_l or par[1] == A_p or par[2] == B_l or par[2] == B_p or
+       par[3] == C_l or par[3] == C_p or par[0] == D_l or par[0] == D_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
     
-    parameters=[('D_par1',par[3]), ('A_par1',par[0]), ('B_par1', par[1]), ('C_par1', par[2]), ('RSS', RSS)]
-    R_squ=R_squared_4PL(D_st, parameters)
-    parameters.append(('R_squ', R_squ))
-    
+    parameters=[('D_par1',par[0]), ('A_par1',par[1]), ('B_par1', par[2]), 
+                ('C_par1', par[3]), ('RSS', RSS)]
+
+    R_squ = R_squared_4PL(D_st, parameters)
+    if(R_squ < 0.6):  error_bound = 1
     y_theor = logit_4PL_func(X_data=X_st, param=parameters)
     akaike_crit = aic.aic(y=Y_st, y_pred=y_theor, p=4)
     bayes_crit = bic.bic(y=Y_st, y_pred=y_theor, p=4)
+    r, prob = pearsonr(Y_st, y_theor)
+
+    parameters.append(('R_squ', R_squ))  
     parameters.append(('AIC_crit', akaike_crit))
     parameters.append(('BIC_crit', bayes_crit))
-    r, prob = pearsonr(Y_st, y_theor)
     parameters.append(('R_corre', r))
-    
+    parameters.append(('Error', error_bound))   
     """returns list of tuples with optimal 4PL-model parameters and R_squ"""
     return (parameters)
 
@@ -850,11 +905,11 @@ def logit_5PL_curve_fit(D_st, start_range):
     """
     Optimization on the base of curvr_fit function
     """
-    X_st=D_st[0]
-    Y_st=D_st[1]
+    X_st = D_st[0]
+    Y_st = D_st[1]
     def logit_func_5PL(X_st, A, B, C, D, E):
-        Y_th=D+(A-D)/((1+(X_st/C)**B)**E)
-        return(Y_th)
+        Y_th=D + (A - D)/((1 + (X_st/C)**B)**E)
+        return Y_th
   
     D_l = start_range['D'][0]
     D_p = start_range['D'][1]
@@ -867,34 +922,37 @@ def logit_5PL_curve_fit(D_st, start_range):
     E_l = start_range['E'][0]
     E_p = start_range['E'][1]
 
-    limits=([0.0, 0.0, 0.0, 0.0, 0.0],[100.0, 50.0, 100, 300, 50])
-    #limits=([D_l, A_l, B_l, C_l, E_l],[D_p, A_p, B_p, C_p, E_p])
-    print("Granice:", limits)
+    limits=([D_l, A_l, B_l, C_l, E_l], [D_p, A_p, B_p, C_p, E_p])
     par, pcov = curve_fit(logit_func_5PL, X_st, Y_st, bounds=limits)        
-    #par, pcov = curve_fit(logit_func_5PL, X_st, Y_st, bounds=([D_l, A_l, B_l, C_l, E_l],[D_p, A_p, B_p, C_p, E_p]))
-    """
-    def logit_func_4PL(X_st, A, B, C, D):
-        Y_th=D+(A-D)/(1+(X_st/C)**B)        
-        return(Y_th)
 
-    """ 
     def avarage_5PL(X_st, par):
-        Y_new=logit_func_5PL(X_st=X_st, A=par[0], B=par[1], C=par[2], D=par[3], E=par[4])
+        Y_new = logit_func_5PL(X_st=X_st, A=par[1], B=par[2], C=par[3], D=par[0], E=par[4])
         return  sum((Y_new-Y_st)**2)
 
     RSS=avarage_5PL(X_st, par)/len(X_st)
+    if(par[1] == A_l or par[1] == A_p or par[2] == B_l or par[2] == B_p or
+       par[3] == C_l or par[3] == C_p or par[0] == D_l or par[0] == D_p or 
+       par[4] == E_l or par[4] == E_p or RSS > 0.3):
+        """ at least one of the parameters is equal to the range limit, error!"""
+        error_bound = 1
+    else:
+        """ the parameters in proper range, ok"""
+        error_bound = 0
+
+    parameters = [('D_par1',par[0]), ('A_par1',par[1]), ('B_par1', par[2]), ('C_par1', par[3]), 
+                  ('E_par1', par[4]), ('RSS', RSS)]
     
-    parameters=[('D_par1',par[3]), ('A_par1',par[0]), ('B_par1', par[1]), ('C_par1', par[2]), ('E_par1', par[4]), ('RSS', RSS)]
-    R_squ=R_squared_5PL(D_st, parameters)
-    parameters.append(('R_squ', R_squ))
-    
+    R_squ = R_squared_5PL(D_st, parameters)    
+    if(R_squ < 0.6):  error_bound = 1
     y_theor = logit_5PL_func(X_data=X_st, param=parameters)
     akaike_crit = aic.aic(y=Y_st, y_pred=y_theor, p=5)
     bayes_crit = bic.bic(y=Y_st, y_pred=y_theor, p=5)
+    r, prob = pearsonr(Y_st, y_theor)
+
+    parameters.append(('R_squ', R_squ))
     parameters.append(('AIC_crit', akaike_crit))
     parameters.append(('BIC_crit', bayes_crit))
-    r, prob = pearsonr(Y_st, y_theor)
     parameters.append(('R_corre', r))
-    
+    parameters.append(('Error', error_bound))   
     """returns list of tuples with optimal 5PL-model parameters and R_squ"""
     return (parameters)

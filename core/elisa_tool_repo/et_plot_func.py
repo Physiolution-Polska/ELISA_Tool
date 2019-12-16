@@ -13,7 +13,7 @@ __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Grzegorz Banach"
 __email__ = "g.banach@physiolution.pl"
-__status__ = "Testing"
+__status__ = "Production"
 
 import matplotlib.pyplot as plt
 

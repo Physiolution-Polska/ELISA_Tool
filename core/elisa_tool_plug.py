@@ -45,7 +45,7 @@ import elisa_tool_repo.et_parse_func as epf
 import elisa_tool_repo.validation_func as vf_lib
 import elisa_tool_repo.high_lev_func as hl_1
 import elisa_tool_repo.et_calc as ecf
-
+import elisa_tool_repo.pdf_creator as pdf
 
 try:
     from tkinter.ttk import *
@@ -158,7 +158,7 @@ class elisaPlugin(Plugin):
                                                  state='readonly',
                                                  textvariable=self.choiceVar)
         self.methodChooseCombobox.grid(column='0', row='1')
-        list_itemsA = ["fc4PL", "fc5PL", "fcLN", "4PL", "5PL", "LN"]
+        list_itemsA = ["cf4PL", "cf5PL", "cfLN", "4PL", "5PL", "LN"]
         self.methodChooseCombobox['values'] = list_itemsA
         self.methodChooseCombobox.set(list_itemsA[0])
         self.methodChooseFrame.grid(column='0', row='0')
@@ -346,7 +346,7 @@ class elisaPlugin(Plugin):
                                     state='readonly',
                                     textvariable=self.choiceVarV)
         self.methodChooseComboboxV.grid(column='0', row='1')
-        list_itemsV = ["fc4PL-val", "fc5PL-val", "fcLN-val", "4PL-val",
+        list_itemsV = ["cf4PL-val", "cf5PL-val", "cfLN-val", "4PL-val",
                        "5PL-val", "LN-val"]
         self.methodChooseComboboxV['values'] = list_itemsV
         self.methodChooseComboboxV.set(list_itemsV[0])
@@ -638,12 +638,12 @@ class elisaPlugin(Plugin):
         examp_run = self.methodChooseCombobox.get()
         print("Before if examp_run: ", examp_run)
         
-        if ((examp_run == "LN") or (examp_run == "fcLN")):
+        if ((examp_run == "LN") or (examp_run == "cfLN")):
             self.etConfig[examp_run] = {"A": [float(self.paramAfrom.get()),
                                               float(self.paramAto.get())],
                                         "B": [float(self.paramBfrom.get()),
                                               float(self.paramBto.get())]}
-        if ((examp_run == "4PL") or (examp_run == "fc4PL")):
+        if ((examp_run == "4PL") or (examp_run == "cf4PL")):
             self.etConfig[examp_run] = {"A": [float(self.paramAfrom.get()),
                                               float(self.paramAto.get())],
                                         "B": [float(self.paramBfrom.get()),
@@ -652,7 +652,7 @@ class elisaPlugin(Plugin):
                                               float(self.paramCto.get())],
                                         "D": [float(self.paramDfrom.get()),
                                               float(self.paramDto.get())]}
-        if ((examp_run == "5PL") or (examp_run == "fc5PL")):
+        if ((examp_run == "5PL") or (examp_run == "cf5PL")):
             self.etConfig[examp_run] = {"A": [float(self.paramAfrom.get()),
                                               float(self.paramAto.get())],
                                         "B": [float(self.paramBfrom.get()),
@@ -674,8 +674,8 @@ class elisaPlugin(Plugin):
             """         0         1               2               3                 4           5           6
             output: (meas_res, data_map, data_standards, data_standards_for_rep, pdf_leg, specification, dat_model)
             """   
-            
-            (df_colect_data, flag) = ecf.recognition_experiment(imp_data=run_step_1[0], imp_data_map=run_step_1[1], d_st=run_step_1[2])
+            ### !!!!!!!!!!!!!!!!!!!!!
+            (df_colect_data, flag) = ecf.recognition_experiment(imp_data=run_step_1[0], imp_data_map=run_step_1[1], d_st=run_step_1[3])
             """         0         1               2               3                 4           5           6
             output: (df_local, flag) - DF with data samples, std and other, flag - recognized experiment: STD (standard ELISA), SPC -JS exp.
             """   
@@ -687,46 +687,64 @@ class elisaPlugin(Plugin):
             """
             end_time = time.time()
             calc_time = end_time - start_time
-            # co z tym z tym zrobic?
-            res_name = 'Raport_'
-            (x_theor, y_theor, x_std, y_std, x_sam,  y_sam) = hl_1.make_report(
-                                std_mat=run_step_1[2],
-                                X_std=run_step_1[6][0],
-                                Y_std=run_step_1[6][1],
-                                param=run_step_2,
-                                res_folder=res_fol,
-                                r_name=res_name,
-                                meas_res=run_step_1[0],
-                                data_map=run_step_1[1],
-                                data_standards=run_step_1[2],
-                                data_standards_for_rep=run_step_1[3],
-                                specification=run_step_1[5],
-                                pdf_leg=run_step_1[4],
-                                licence_notice=self.etConfig["licence_notice"],
-                                order_model=examp_run,
-                                cal_time=calc_time)
+            ind_x = [ind_x for ind_x in run_step_2 if 'Error' in ind_x][0]
+            ind_error = run_step_2.index(ind_x)
             """
-            input:           (std_mat, X_std, Y_std, param, 
-                                res_folder, r_name, 
-                                meas_res, data_map, data_standards, data_standards_for_rep, 
-                                specification, pdf_leg, licence_notice, order_model)    
-
-            output: df('x_theor', 'y_theor', 'x_std', 'y_std', 'x_sam', 'x_sam')
+            Looking for index in multidim array (index() dosn'r work for this case). Above 2 lines working, bu=t i've no idea how...
             """
-            self.labelCalcuateStatus["text"] = "completed"
-
-            df = pd.DataFrame()
-            df['x_theor'] = pd.Series(x_theor)
-            df['y_theor'] = pd.Series(y_theor)
-            df['x_std'] = pd.Series(x_std)
-            df['y_std'] = pd.Series(y_std)
-            df['x_sam'] = pd.Series(x_sam)
-            df['y_sam'] = pd.Series(y_sam)
-
-            table = self.parent.getCurrentTable()
-            table.model.df = df
-            table.redraw()
-            self.plotResult(df)
+            print("ind_error: ", ind_error)
+            if(run_step_2[ind_error][1] == 0):
+                """Calculation without errors."""
+                res_name = 'Raport_'
+                (x_theor, y_theor, x_std, y_std, x_sam,  y_sam) = hl_1.make_report(
+                                    std_mat=run_step_1[2],
+                                    X_std=run_step_1[6][0],
+                                    Y_std=run_step_1[6][1],
+                                    param=run_step_2,
+                                    res_folder=res_fol,
+                                    r_name=res_name,
+                                    meas_res=run_step_1[0],
+                                    data_map=run_step_1[1],
+                                    data_standards=run_step_1[2],
+                                    data_standards_for_rep=run_step_1[3],
+                                    specification=run_step_1[5],
+                                    pdf_leg=run_step_1[4],
+                                    licence_notice=self.etConfig["licence_notice"],
+                                    order_model=examp_run,
+                                    cal_time=calc_time)
+                """
+                input:           (std_mat, X_std, Y_std, param, 
+                                    res_folder, r_name, 
+                                    meas_res, data_map, data_standards, data_standards_for_rep, 
+                                    specification, pdf_leg, licence_notice, order_model)    
+    
+                output: df('x_theor', 'y_theor', 'x_std', 'y_std', 'x_sam', 'x_sam')
+                """
+                self.labelCalcuateStatus["text"] = "completed"
+    
+                df = pd.DataFrame()
+                df['x_theor'] = pd.Series(x_theor)
+                df['y_theor'] = pd.Series(y_theor)
+                df['x_std'] = pd.Series(x_std)
+                df['y_std'] = pd.Series(y_std)
+                df['x_sam'] = pd.Series(x_sam)
+                df['y_sam'] = pd.Series(y_sam)
+                table = self.parent.getCurrentTable()
+                table.model.df = df
+                table.redraw()
+                self.plotResult(df)
+            else:
+                """Error in calculation. Send a warrinig."""
+                #print("Bug w obliczeniach!!!")
+                if(run_step_2[ind_error][1] == 1):
+                    error_info = "Err: too small bound of parameter changes for method, parameter=bound"
+                ind_x = [ind_x for ind_x in run_step_2 if 'RSS' in ind_x][0]
+                ind_error = run_step_2.index(ind_x)
+                if(run_step_2[ind_error][1] > 0.3):
+                    error_info = "Err: too small bound of parameter changes for method, RSS error"
+                self.labelCalcuateStatus["text"] = "Err: check *error.csv"
+                pdf.rep_error_csv(rep_name='Raport_', p_folder=res_fol , parameters=run_step_2, order=examp_run, error_info)
+                
             mainloop()
             
         return
