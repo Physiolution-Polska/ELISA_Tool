@@ -1,6 +1,6 @@
 WeasyPrint==0.42.3
 pandas==0.23.3
-numpy==1.13.3
+numpy==1.22.0
 scipy==0.19.1
 matplotlib==2.1.1
 RegscorePy==1.1
